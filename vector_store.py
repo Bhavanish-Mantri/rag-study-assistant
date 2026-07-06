@@ -4,21 +4,29 @@ vector_store.py - Embedding generation and FAISS vector store management
 
 import os
 import shutil
-from langchain_community.embeddings import HuggingFaceEmbeddings
+import stat
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
 
 FAISS_INDEX_PATH = "faiss_index"
+
+
+_embeddings_instance = None
 
 
 def get_embeddings() -> HuggingFaceEmbeddings:
     """
     Initialize and return HuggingFace sentence-transformers embeddings.
     """
-    return HuggingFaceEmbeddings(
-        model_name="all-MiniLM-L6-v2",
-        model_kwargs={"device": "cpu"},
-        encode_kwargs={"normalize_embeddings": True}
-    )
+    global _embeddings_instance
+    if _embeddings_instance is None:
+        _embeddings_instance = HuggingFaceEmbeddings(
+            model_name="all-MiniLM-L6-v2",
+            model_kwargs={"device": "cpu"},
+            encode_kwargs={"normalize_embeddings": True}
+        )
+    return _embeddings_instance
+
 
 
 def create_vector_store(chunks: list) -> FAISS:
@@ -32,9 +40,13 @@ def create_vector_store(chunks: list) -> FAISS:
     Returns:
         FAISS vector store instance.
     """
+    def handle_remove_readonly(func, path, exc):
+        os.chmod(path, stat.S_IWRITE)
+        func(path)
+
     # Delete old index if it exists
     if os.path.exists(FAISS_INDEX_PATH):
-        shutil.rmtree(FAISS_INDEX_PATH)
+        shutil.rmtree(FAISS_INDEX_PATH, onerror=handle_remove_readonly)
 
     embeddings = get_embeddings()
     vector_store = FAISS.from_documents(chunks, embeddings)
@@ -63,20 +75,4 @@ def load_vector_store() -> FAISS:
         embeddings,
         allow_dangerous_deserialization=True
     )
-    return vector_store
-
-def create_vector_store(chunks: list) -> FAISS:
-    import stat
-
-    def handle_remove_readonly(func, path, exc):
-        os.chmod(path, stat.S_IWRITE)
-        func(path)
-
-    # Delete old index if it exists
-    if os.path.exists(FAISS_INDEX_PATH):
-        shutil.rmtree(FAISS_INDEX_PATH, onerror=handle_remove_readonly)
-
-    embeddings = get_embeddings()
-    vector_store = FAISS.from_documents(chunks, embeddings)
-    vector_store.save_local(FAISS_INDEX_PATH)
-    return vector_store
+    return vector_store

@@ -165,3 +165,42 @@ The system enforces strict grounding through:
 | Gemini Model   | gemini-1.5-flash  | `main.py`         |
 | Max Tokens     | 512               | `main.py`         |
 | Temperature    | 0.0               | `main.py`         |
+
+---
+
+## 📊 Automated Ragas Evaluation
+
+The project includes an automated evaluation suite using the **Ragas** framework to measure system performance on key metrics:
+
+* **Faithfulness**: Verifies if the answer is derived strictly from the text (no hallucination).
+* **Answer Relevancy**: Verifies if the answer directly addresses the question.
+* **Context Precision**: Verifies if the retriever places the most relevant chunks at the top.
+* **Context Recall**: Verifies if all necessary information to answer the question is successfully retrieved.
+
+### Running the Evaluation Suite
+
+1. **Generate the Test Document**:
+   Run the helper script to create a sample academic PDF in the `data/` folder:
+   ```bash
+   python generate_sample_pdf.py
+   ```
+
+2. **Run the Evaluation Script**:
+   - **Demo / Mock Mode** (no API key required):
+     ```bash
+     python evaluate_ragas.py --demo
+     ```
+   - **Live Mode** (uses Gemini LLM as the evaluator/judge):
+     ```bash
+     # Windows CMD
+     set GEMINI_API_KEY=your_gemini_api_key_here
+     python evaluate_ragas.py
+     
+     # Windows PowerShell
+     $env:GEMINI_API_KEY="your_gemini_api_key_here"
+     python evaluate_ragas.py
+     ```
+
+3. **Check the Report**:
+   The script will print a summary table to the console and save a detailed markdown report to `evaluation_report.md`.
+
